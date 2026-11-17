@@ -1,0 +1,170 @@
+@baseUrl = http://localhost:5074
+@api = {{baseUrl}}/api/v1
+@userEmail = pessoa@example.invalid
+@userPassword = 1234
+@otherEmail = outra@example.invalid
+@adminEmail = admin@aja.local
+@adminPassword = Admin#Aja2026!
+@userToken = SUBSTITUA-PELO-JWT-USER
+@otherToken = SUBSTITUA-PELO-JWT-OUTRO-USER
+@adminToken = SUBSTITUA-PELO-JWT-ADMIN
+@demandaId = 00000000-0000-0000-0000-000000000000
+@comentarioId = 00000000-0000-0000-0000-000000000000
+
+### Health público
+GET {{baseUrl}}/health
+
+### Cadastro público — campos extras de perfil são ignorados
+POST {{api}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "{{userEmail}}",
+  "alias": "Pessoa participante",
+  "password": "{{userPassword}}",
+  "role": "Admin",
+  "isAdmin": true
+}
+
+### Login User
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{userEmail}}",
+  "password": "{{userPassword}}"
+}
+
+### Login de outro User
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{otherEmail}}",
+  "password": "{{userPassword}}"
+}
+
+### Login Admin provisionado localmente
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+### Própria conta
+GET {{api}}/auth/me
+Authorization: Bearer {{userToken}}
+
+### Criação mínima: exatamente descricao e local obrigatórios
+POST {{api}}/demandas
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "descricao": "Entulho bloqueia a calçada e dificulta a passagem.",
+  "local": "Em frente à entrada da praça, na Rua Exemplo."
+}
+
+### Consulta combinada e paginação
+GET {{api}}/demandas?situacao=Aberta&bairro=Doroteia&minhas=true&page=1&pageSize=20
+Authorization: Bearer {{userToken}}
+
+### Detalhe/resumo, apoio atual e histórico
+GET {{api}}/demandas/{{demandaId}}
+Authorization: Bearer {{userToken}}
+
+### Autor edita enquanto Aberta
+PUT {{api}}/demandas/{{demandaId}}
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "descricao": "Entulho continua bloqueando a faixa livre da calçada.",
+  "local": "Em frente à entrada principal da praça.",
+  "evidenciaUrl": "https://example.invalid/evidencia.jpg"
+}
+
+### Outro usuário recebe 403 ao editar
+PUT {{api}}/demandas/{{demandaId}}
+Authorization: Bearer {{otherToken}}
+Content-Type: application/json
+
+{
+  "descricao": "Tentativa de alterar uma demanda de outra pessoa.",
+  "local": "Outro local informado pelo participante."
+}
+
+### Apoio repetido é idempotente
+PUT {{api}}/demandas/{{demandaId}}/apoio
+Authorization: Bearer {{otherToken}}
+
+###
+PUT {{api}}/demandas/{{demandaId}}/apoio
+Authorization: Bearer {{otherToken}}
+
+### Retirada repetida também é idempotente
+DELETE {{api}}/demandas/{{demandaId}}/apoio
+Authorization: Bearer {{otherToken}}
+
+### Comentário com um único campo
+POST {{api}}/demandas/{{demandaId}}/comentarios
+Authorization: Bearer {{otherToken}}
+Content-Type: application/json
+
+{
+  "texto": "Sugiro retirar o material e liberar a faixa de circulação."
+}
+
+### Comentários comunitários visíveis
+GET {{api}}/demandas/{{demandaId}}/comentarios?page=1&pageSize=20
+Authorization: Bearer {{userToken}}
+
+### Autor remove o próprio comentário
+DELETE {{api}}/comentarios/{{comentarioId}}
+Authorization: Bearer {{otherToken}}
+
+### Admin classifica sem mudar situação
+PATCH {{api}}/demandas/{{demandaId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "categoria": "Fisica"
+}
+
+### Admin muda situação com justificativa e histórico automático
+PATCH {{api}}/demandas/{{demandaId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "situacao": "EmAndamento",
+  "justificativa": "A demanda está em análise pela administração."
+}
+
+### Admin oculta comentário; o primeiro moderador permanece registrado
+PATCH {{api}}/comentarios/{{comentarioId}}/moderacao
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "motivo": "Comentário ocultado por conter informação pessoal de terceiros."
+}
+
+### Exclusão de demanda Aberta e sem qualquer participação
+DELETE {{api}}/demandas/{{demandaId}}
+Authorization: Bearer {{userToken}}
+
+### 401: chamada protegida sem token
+GET {{api}}/demandas
+
+### 403: User tenta operação administrativa
+PATCH {{api}}/demandas/{{demandaId}}
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "categoria": "Visual"
+}
