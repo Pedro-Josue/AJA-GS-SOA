@@ -390,6 +390,28 @@ Falhas conhecidas usam `application/problem+json`:
 }
 ```
 
+## Evidências da aplicação e dos testes funcionais
+
+As imagens abaixo foram registradas com a aplicação em execução no ambiente `Development`. Elas complementam os testes automatizados ao demonstrar o contrato dos serviços, a disponibilidade da API e uma chamada autenticada realizada pelo Swagger.
+
+### Documentação dos serviços REST
+
+O Swagger apresenta a AJA API, o esquema de autenticação Bearer e os grupos de endpoints de autenticação, demandas, participações, comentários e health check.
+
+![Swagger UI da AJA API com os endpoints dos serviços](assets/evidencias/01-swagger-visao-geral.jpg)
+
+### Teste de disponibilidade
+
+A chamada pública `GET /health` retorna o estado `healthy`, confirmando que a API iniciou corretamente e está disponível para receber requisições.
+
+![Resposta saudável da rota GET health](assets/evidencias/02-health-check.jpg)
+
+### Teste funcional autenticado
+
+A execução de `GET /api/v1/demandas/{id}` retorna `200 OK` e comprova o funcionamento conjunto da autenticação JWT, do serviço de demandas, da persistência SQLite e do histórico de situação. A resposta exibe a categoria `Fisica`, a situação `EmAndamento`, os totais de participação e a justificativa administrativa.
+
+![Resposta autenticada com os dados e o histórico da demanda](assets/evidencias/03-demanda-autenticada.jpg)
+
 ## Testes automatizados
 
 ```powershell
